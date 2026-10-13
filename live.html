@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Drone Path Tracer</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --panel: #1e293b;
+            --border: #334155;
+            --accent: #38bdf8;
+            --text: #f8fafc;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+        }
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: system-ui, -apple-system, sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        h1 { margin-bottom: 5px; font-size: 1.6rem; }
+        p { color: #94a3b8; margin-top: 0; font-size: 0.95rem; text-align: center; }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 20px;
+            background: var(--panel);
+            padding: 12px 20px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        button, select {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+        button:hover { background: #1d4ed8; }
+        button:active { transform: scale(0.98); }
+        button#connectBtn { background: var(--success); }
+        button#connectBtn:hover { background: #16a34a; }
+        button#disconnectBtn { background: var(--danger); }
+        button#disconnectBtn:hover { background: #dc2626; }
+        button#replayBtn { background: #9333ea; }
+        button#replayBtn:hover { background: #7e22ce; }
+        select { background: #334155; border: 1px solid var(--border); color: white; }
+
+        .canvas-container {
+            position: relative;
+            background: var(--panel);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+            overflow: hidden;
+        }
+        canvas { 
+            display: block; 
+        }
+        .status-banner {
+            margin-top: 12px;
+            font-size: 1.05rem;
+            font-weight: 500;
+            color: var(--accent);
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Live Drone Path Tracer</h1>
+    <p>Connect your drone via USB to trace its live flight path against the target shape.</p>
+
+    <div class="controls">
+        <select id="shapeSelect">
+            <option value="circle">Target: Circle</option>
+            <option value="square">Target: Square</option>
+        </select>
+        <button id="connectBtn">Connect Drone (USB)</button>
+        <button id="disconnectBtn" style="display:none;">Disconnect</button>
+        <button id="replayBtn" disabled>▶ Replay Flight</button>
+        <button id="clearBtn">Clear Path</button>
+    </div>
+
+    <div class="canvas-container">
+        <canvas id="droneCanvas" width="950" height="750"></canvas>
+    </div>
+
+    <div class="status-banner" id="statusText">Status: Disconnected. Connect drone via USB to start live telemetry.</div>
+
+    <script>
+        const canvas = document.getElementById('droneCanvas');
+        const ctx = canvas.getContext('2d');
+        const shapeSelect = document.getElementById('shapeSelect');
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const replayBtn = document.getElementById('replayBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const statusText = document.getElementById('statusText');
+
+        let port;
+        let reader;
+        let keepReading = false;
+        let isConnected = false;
+
+        let flightPath = [];
+        let isReplaying = false;
+        let currentShape = 'circle';
+
+        const scale = 35; // pixels per meter
+        const offsetX = canvas.width / 2;
+        const offsetY = canvas.height / 2;
+
+        shapeSelect.addEventListener('change', (e) => {
+            currentShape = e.target.value;
+            renderStaticScene();
+        });
+
+        clearBtn.addEventListener('click', () => {
+            if (isReplaying) return;
+            flightPath = [];
+            replayBtn.disabled = true;
+            statusText.innerText = isConnected ? "Status: Connected. Waiting for drone telemetry..." : "Status: Canvas cleared.";
+            renderStaticScene();
+        });
+
+        // --- WEB-SERIAL CONNECTION TO PHYSICAL DRONE ---
+        connectBtn.addEventListener('click', async () => {
+            try {
+                port = await navigator.serial.requestPort();
+                await port.open({ baudRate: 115200 });
+
+                isConnected = true;
+                statusText.innerText = "Status: Connected to drone. Waiting for live telemetry...";
+                connectBtn.style.display = "none";
+                disconnectBtn.style.display = "inline-block";
+
+                keepReading = true;
+                readSerialLoop();
+            } catch (err) {
+                console.error("Serial connection failed:", err);
+                alert("Could not connect to serial port. Ensure you're using Chrome/Edge and selected the correct port.");
+            }
+        });
+
+        disconnectBtn.addEventListener('click', async () => {
+            keepReading = false;
+            if (reader) await reader.cancel();
+            if (port) await port.close();
+
+            isConnected = false;
+            statusText.innerText = "Status: Disconnected from drone.";
+            connectBtn.style.display = "inline-block";
+            connectBtn.style.display = "none";
+        });
+
+        async function readSerialLoop() {
+            const textDecoder = new TextDecoderStream();
+            const readableStreamClosed = port.readable.pipeTo(textDecoder.writable);
+            reader = textDecoder.readable.getReader();
+
+            let buffer = "";
+            try {
+                while (keepReading) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    if (value) {
+                        buffer += value;
+                        let lines = buffer.split("\n");
+                        buffer = lines.pop();
+
+                        for (let line of lines) {
+                            parseDroneData(line.trim());
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error("Serial read error:", error);
+            }
+        }
+
+        function parseDroneData(dataLine) {
+            try {
+                const data = JSON.parse(dataLine);
+                if (typeof data.x === 'number' && typeof data.y === 'number') {
+                    const px = data.x * scale + offsetX;
+                    const py = -data.y * scale + offsetY;
+
+                    flightPath.push({ x: px, y: py });
+                    
+                    renderStaticScene();
+                    drawCompletePath(flightPath, '#ef4444');
+                    drawDroneHead(flightPath[flightPath.length - 1], '#22c55e');
+
+                    statusText.innerText = `Status: Receiving live drone data | X: ${data.x.toFixed(2)}m, Y: ${data.y.toFixed(2)}m`;
+
+                    if (flightPath.length > 5) {
+                        replayBtn.disabled = false;
+                    }
+                }
+            } catch (e) {
+                // Ignore non-JSON logs
+            }
+        }
+
+        // --- REPLAY FEATURE ---
+        replayBtn.addEventListener('click', () => {
+            if (flightPath.length === 0 || isReplaying) return;
+
+            isReplaying = true;
+            replayBtn.disabled = true;
+            connectBtn.disabled = true;
+            clearBtn.disabled = true;
+            shapeSelect.disabled = true;
+
+            let index = 0;
+            statusText.innerText = "Status: Replaying flight path against target shape...";
+
+            function stepReplay() {
+                if (index < flightPath.length) {
+                    renderStaticScene();
+                    let subPath = flightPath.slice(0, index + 1);
+                    drawCompletePath(subPath, '#f59e0b'); // Amber path for replay
+                    drawDroneHead(flightPath[index], '#ef4444'); // Red indicator
+
+                    index += 2; // Speed up replay
+                    requestAnimationFrame(stepReplay);
+                } else {
+                    isReplaying = false;
+                    replayBtn.disabled = false;
+                    connectBtn.disabled = false;
+                    clearBtn.disabled = false;
+                    shapeSelect.disabled = false;
+                    
+                    renderStaticScene();
+                    drawCompletePath(flightPath, '#ef4444');
+                    drawDroneHead(flightPath[flightPath.length - 1], '#22c55e');
+                    statusText.innerText = "Status: Replay finished. Review where the path drifted from the target!";
+                }
+            }
+            stepReplay();
+        });
+
+        // --- DRAWING UTILITIES ---
+        function renderStaticScene() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw target ghost shape
+            ctx.beginPath();
+            if (currentShape === 'circle') {
+                ctx.arc(offsetX, offsetY, 2.5 * scale, 0, Math.PI * 2);
+            } else {
+                const size = 5 * scale;
+                ctx.rect(offsetX - size/2, offsetY - size/2, size, size);
+            }
+            ctx.strokeStyle = 'rgba(56, 189, 248, 0.35)';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([8, 6]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        function drawCompletePath(path, color) {
+            if (path.length < 2) return;
+            ctx.beginPath();
+            ctx.moveTo(path[0].x, path[0].y);
+            for (let i = 1; i < path.length; i++) {
+                ctx.lineTo(path[i].x, path[i].y);
+            }
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 4;
+            ctx.stroke();
+        }
+
+        function drawDroneHead(pt, color) {
+            if (!pt) return;
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, 8, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#ffffff';
+            ctx.stroke();
+        }
+
+        renderStaticScene();
+    </script>
+</body>
+</html>
