@@ -34,6 +34,7 @@ function drawIdleText() {
 // One button changes its label and action with the game state:
 // Start -> (playing) -> Try again / Start again
 let buttonAction = null;
+let resumeRemaining = 0;
 
 function setButton(label, enabled, action) {
   startBtn.textContent = label;
@@ -53,7 +54,8 @@ function render(s) {
   statusText.textContent = s.isDroneConnected ? 'Controller Connected' : 'Controller Not Connected';
 
   // Level label and countdown
-  levelLabel.textContent = s.level ? LEVEL_NAMES[s.level] : '';
+   const levelName = s.level ? LEVEL_NAMES[s.level] : '';
+  levelLabel.textContent = s.state === STATES.PAUSED ? `${levelName} (paused)` : levelName;
   timerEl.textContent = s.remaining == null ? '' : `${s.remaining}s`;
 
   // Main button
@@ -64,6 +66,11 @@ function render(s) {
     case STATES.LEVEL_1:
     case STATES.LEVEL_2:
       setButton('Playing...', false, null);
+      break;
+    case STATES.PAUSED:
+      if (s.resumeStatus === 'ready') setButton('Resume', true, () => game.resume());
+      else if (s.resumeStatus === 'counting') setButton(`Resuming in ${resumeRemaining}...`, false, null);
+      else setButton('Controller disconnected', false, null);
       break;
     case STATES.FAILED:
       setButton('Try again', s.canStart, () => game.startGame());
@@ -89,6 +96,10 @@ function render(s) {
 // ---------- Game events ----------
 game.on('stateChange', render);
 game.on('tick', ({ remaining }) => { timerEl.textContent = `${remaining}s`; });
+game.on('resumeTick', ({ remaining }) => {
+  resumeRemaining = remaining;
+  startBtn.textContent = `Resuming in ${remaining}...`;
+});
 game.on('clearCanvas', clearCanvas);
 
 let toastTimer;

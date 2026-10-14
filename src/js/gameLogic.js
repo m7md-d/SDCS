@@ -3,12 +3,14 @@
 // Pure logic: never touches the DOM. main.js subscribes to events and renders.
 //
 // States: START -> LEVEL_1 -> LEVEL_2 -> COMPLETED
+//         LEVEL_x <-> PAUSED (controller disconnect / resume)
 //         LEVEL_x -> FAILED (countdown reached 0) -> startGame() -> LEVEL_1
 
 export const STATES = Object.freeze({
   START: 'START',
   LEVEL_1: 'LEVEL_1',
   LEVEL_2: 'LEVEL_2',
+  PAUSED: 'PAUSED',
   COMPLETED: 'COMPLETED',
   FAILED: 'FAILED',
 });
@@ -18,9 +20,13 @@ export const CONFIG = {
     LEVEL_1: { seconds: 60, target: 'square', prompt: 'Level 1: draw a square' },
     LEVEL_2: { seconds: 90, target: 'triangle', prompt: 'Level 2: draw a triangle' },
   },
+  resumeCountdownSeconds: 3,
   messageMs: 3000, // main.js should auto-dismiss notifications after this
   messages: {
     notConnected: 'Drone not connected',
+    paused: 'Controller disconnected. Game paused.',
+    reconnected: 'Controller reconnected. Press Resume.',
+    resumeCancelled: 'Controller disconnected again. Game paused.',
     failed: "Time's up! Press Try again to start from Level 1.",
     completed: 'Congratulations! You completed both levels!',
   },
@@ -32,17 +38,20 @@ class GameLogic {
     this.handlers = {};
     this.isDroneConnected = false; // survives resetGame()
     this._tickId = null;
+    this._resumeId = null;
     this._initState();
   }
 
   _initState() {
     this.state = STATES.START;
+    this.pausedFrom = null; // LEVEL_1 or LEVEL_2 while PAUSED
     this.remaining = null; // seconds left in the current level
+    this.resumeStatus = 'none'; // 'none' | 'ready' | 'counting'
     this.results = { level1TimeLeft: null, level2TimeLeft: null };
   }
 
   // ---------- Events ----------
-  // Events: stateChange, tick, message, clearCanvas, connection
+  // Events: stateChange, tick, message, clearCanvas, connection, resumeTick
   on(event, handler) {
     (this.handlers[event] ||= []).push(handler);
     return () => {
@@ -63,8 +72,8 @@ class GameLogic {
   }
 
   getSnapshot() {
-    const level =
-      this.state === STATES.LEVEL_1 || this.state === STATES.LEVEL_2 ? this.state : null;
+    const inLevel = this.state === STATES.LEVEL_1 || this.state === STATES.LEVEL_2;
+    const level = this.state === STATES.PAUSED ? this.pausedFrom : inLevel ? this.state : null;
     const levelCfg = this.config.levels[level];
     return {
       state: this.state,
@@ -75,6 +84,7 @@ class GameLogic {
       canStart:
         this.isDroneConnected &&
         (this.state === STATES.START || this.state === STATES.FAILED),
+      resumeStatus: this.resumeStatus, // show Resume button when 'ready'
       results: { ...this.results }, // time left per level, for the success screen
     };
   }
@@ -85,6 +95,26 @@ class GameLogic {
     if (connected === this.isDroneConnected) return;
     this.isDroneConnected = connected;
     this._emit('connection', { connected });
+
+    const inLevel = this.state === STATES.LEVEL_1 || this.state === STATES.LEVEL_2;
+
+    if (inLevel && !connected) {
+      this._stopTimer();
+      this.pausedFrom = this.state;
+      this.state = STATES.PAUSED;
+      this.resumeStatus = 'none';
+      this._message(this.config.messages.paused, 'warning');
+    } else if (this.state === STATES.PAUSED) {
+      if (connected) {
+        this.resumeStatus = 'ready';
+        this._message(this.config.messages.reconnected, 'info');
+      } else {
+        // Dropped again (possibly during the 3-2-1 countdown)
+        this._stopResumeCountdown();
+        this.resumeStatus = 'none';
+        this._message(this.config.messages.resumeCancelled, 'warning');
+      }
+    }
     this._emitState(); // also updates canStart on START / FAILED / COMPLETED
   }
 
@@ -100,8 +130,38 @@ class GameLogic {
     return true;
   }
 
+  resume() {
+    if (
+      this.state !== STATES.PAUSED ||
+      this.resumeStatus !== 'ready' ||
+      !this.isDroneConnected
+    ) {
+      return false;
+    }
+    this.resumeStatus = 'counting';
+    let n = this.config.resumeCountdownSeconds;
+    this._emit('resumeTick', { remaining: n });
+    this._emitState();
+    this._resumeId = setInterval(() => {
+      n -= 1;
+      if (n > 0) {
+        this._emit('resumeTick', { remaining: n });
+      } else {
+        this._stopResumeCountdown();
+        this.state = this.pausedFrom;
+        this.pausedFrom = null;
+        this.resumeStatus = 'none';
+        this._emit('tick', { remaining: this.remaining });
+        this._emitState();
+        this._startTimer(); // continues from where it stopped
+      }
+    }, 1000);
+    return true;
+  }
+
   resetGame() {
     this._stopTimer();
+    this._stopResumeCountdown();
     this._initState();
     this._emit('clearCanvas');
     this._emitState();
@@ -109,7 +169,7 @@ class GameLogic {
 
   // ---------- Called by matcher.js ----------
   completeLevel1() {
-    if (this.state !== STATES.LEVEL_1) return false;
+    if (this.state !== STATES.LEVEL_1) return false; // ignores paused / wrong state
     this._stopTimer();
     this.results.level1TimeLeft = this.remaining;
     this._beginLevel(STATES.LEVEL_2);
@@ -151,6 +211,13 @@ class GameLogic {
     if (this._tickId !== null) {
       clearInterval(this._tickId);
       this._tickId = null;
+    }
+  }
+
+  _stopResumeCountdown() {
+    if (this._resumeId !== null) {
+      clearInterval(this._resumeId);
+      this._resumeId = null;
     }
   }
 
