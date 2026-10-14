@@ -9,11 +9,22 @@
 <body>
     <h1>Game</h1>
 
+    <div class="hud">
+        <span id="level-label"></span>
+        <span id="timer"></span>
+    </div>
+
     <canvas id="game" width="800" height="500"></canvas>
 
     <div class="controls">
+        <div id="toast" class="toast" hidden></div>
+        <p id="results" class="hint" hidden></p>
+
         <button id="start-btn" class="btn-pro" disabled>Start</button>
+
         <p class="hint">Connect the controller and press any button</p>
     </div>
+
+    <script type="module" src="main.js"></script>
 </body>
 </html>
