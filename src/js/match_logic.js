@@ -1,7 +1,7 @@
-process.loadEnvFile("API_KEY.env");
+const API_KEY = "Write your API key here"; // Replace with your actual API key
+
 async function askAI(shape, coordinates) {
    
-   const API_KEY = process.env.API_KEY;
 
     const response = await fetch(
         "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent",
