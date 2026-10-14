@@ -13,6 +13,8 @@ const toast = $('toast');
 const results = $('results');
 const canvas = $('game');
 const ctx = canvas.getContext('2d');
+const dot = $('status-dot');
+const statusText = $('status-text');
 
 const LEVEL_NAMES = { LEVEL_1: 'Level 1 · Square', LEVEL_2: 'Level 2 · Triangle' };
 
@@ -45,6 +47,11 @@ startBtn.addEventListener('click', () => {
 
 // ---------- Render ----------
 function render(s) {
+
+  // Connection indicator
+  dot.classList.toggle('connected', s.isDroneConnected);
+  statusText.textContent = s.isDroneConnected ? 'Controller Connected' : 'Controller Not Connected';
+
   // Level label and countdown
   levelLabel.textContent = s.level ? LEVEL_NAMES[s.level] : '';
   timerEl.textContent = s.remaining == null ? '' : `${s.remaining}s`;
@@ -92,6 +99,18 @@ game.on('message', ({ text, type, duration }) => {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { toast.hidden = true; }, duration);
 });
+
+// ---------- Controller (Gamepad API) ----------
+// Replace these with the arduino.js hook once the Arduino team's API is settled.
+window.addEventListener('gamepadconnected', (e) => {
+  console.log('Gamepad connected:', e.gamepad.id);
+  game.setDroneConnected(true);
+});
+window.addEventListener('gamepaddisconnected', (e) => {
+  console.log('Gamepad disconnected:', e.gamepad.id);
+  game.setDroneConnected(false);
+});
+if ([...navigator.getGamepads()].some(Boolean)) game.setDroneConnected(true);
 
 // ---------- Matcher placeholder ----------
 // Real version, once matcher.js exists:
