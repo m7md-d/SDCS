@@ -51,7 +51,7 @@ class GameLogic {
   }
 
   // ---------- Events ----------
-  // Events: stateChange, tick, message, clearCanvas, connection, resumeTick
+  // Events: stateChange, tick, message, clearCanvas, connection, resumeTick, modeChange
   on(event, handler) {
     (this.handlers[event] ||= []).push(handler);
     return () => {
@@ -165,6 +165,13 @@ class GameLogic {
     this._initState();
     this._emit('clearCanvas');
     this._emitState();
+  }
+
+  // Stub: behavior not decided yet. main.js / other teams can hook into 'modeChange'.
+  openChangeMode() {
+    if (this.state !== STATES.START && this.state !== STATES.COMPLETED) return false;
+    this._emit('modeChange', { requested: true });
+    return true;
   }
 
   // ---------- Called by matcher.js ----------

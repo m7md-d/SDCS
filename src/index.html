@@ -5,30 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>01</title>
     <link rel="stylesheet" type="text/css" href="style.css">
-</head>
+    </head>
 <body>
-    <h1>Game</h1>
+        <h1>Game</h1>
 
-    <div class="hud">
-        <span id="level-label"></span>
-        <span id="timer"></span>
-    </div>
-
-    <canvas id="game" width="800" height="500"></canvas>
-
-    <div class="controls">
-        <div id="toast" class="toast" hidden></div>
-        <p id="results" class="hint" hidden></p>
-        
-        <div class="status">
-            <span id="status-dot" class="dot"></span>
-            <span id="status-text">Controller Not Connected</span>
+        <div class="hud">
+            <span id="level-label"></span>
+            <span id="timer"></span>
         </div>
 
-        <button id="start-btn" class="btn-pro" disabled>Start</button>
+        <canvas id="game" width="800" height="500"></canvas>
 
-        <p class="hint">Connect the controller and press any button</p>
-    </div>
+        <div class="controls">
+            <div id="toast" class="toast" hidden></div>
+            <p id="results" class="hint" hidden></p>
+            <div class="status">
+                <span id="status-dot" class="dot"></span>
+                <span id="status-text">Controller Not Connected</span>
+            </div>
+
+            <button id="start-btn" class="btn-pro" disabled>Start</button>
+
+            <button id="change-btn" class="btn-pro" disabled>Change mode</button>
+
+            <p class="hint">Connect the controller and press any button</p>
+        </div>
+
 
     <script type="module" src="main.js"></script>
 </body>

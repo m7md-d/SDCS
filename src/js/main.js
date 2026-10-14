@@ -6,15 +6,16 @@ import game, { STATES } from './gameLogic.js';
 const DEV_KEYS = true; // press 1 / 2 to fake the matcher. Set to false (or delete) when matcher.js is wired in.
 
 const $ = (id) => document.getElementById(id);
+const dot = $('status-dot');
+const statusText = $('status-text');
 const startBtn = $('start-btn');
+const changeBtn = $('change-btn');
 const levelLabel = $('level-label');
 const timerEl = $('timer');
 const toast = $('toast');
 const results = $('results');
 const canvas = $('game');
 const ctx = canvas.getContext('2d');
-const dot = $('status-dot');
-const statusText = $('status-text');
 
 const LEVEL_NAMES = { LEVEL_1: 'Level 1 · Square', LEVEL_2: 'Level 2 · Triangle' };
 
@@ -32,7 +33,7 @@ function drawIdleText() {
 
 // ---------- Main button ----------
 // One button changes its label and action with the game state:
-// Start -> (playing) -> Try again / Start again
+// Start -> (playing) -> Resume / Try again / Start again
 let buttonAction = null;
 let resumeRemaining = 0;
 
@@ -48,13 +49,12 @@ startBtn.addEventListener('click', () => {
 
 // ---------- Render ----------
 function render(s) {
-
   // Connection indicator
   dot.classList.toggle('connected', s.isDroneConnected);
   statusText.textContent = s.isDroneConnected ? 'Controller Connected' : 'Controller Not Connected';
 
   // Level label and countdown
-   const levelName = s.level ? LEVEL_NAMES[s.level] : '';
+  const levelName = s.level ? LEVEL_NAMES[s.level] : '';
   levelLabel.textContent = s.state === STATES.PAUSED ? `${levelName} (paused)` : levelName;
   timerEl.textContent = s.remaining == null ? '' : `${s.remaining}s`;
 
@@ -80,6 +80,10 @@ function render(s) {
       break;
   }
 
+  // Change mode: only on start and success screens, and only with a controller
+  const modeAllowed = s.state === STATES.START || s.state === STATES.COMPLETED;
+  changeBtn.disabled = !(s.isDroneConnected && modeAllowed);
+
   // Success summary
   if (s.state === STATES.COMPLETED) {
     results.textContent =
@@ -101,6 +105,9 @@ game.on('resumeTick', ({ remaining }) => {
   startBtn.textContent = `Resuming in ${remaining}...`;
 });
 game.on('clearCanvas', clearCanvas);
+game.on('modeChange', () => {
+  // Change mode is not designed yet.
+});
 
 let toastTimer;
 game.on('message', ({ text, type, duration }) => {
@@ -110,6 +117,8 @@ game.on('message', ({ text, type, duration }) => {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { toast.hidden = true; }, duration);
 });
+
+changeBtn.addEventListener('click', () => game.openChangeMode());
 
 // ---------- Controller (Gamepad API) ----------
 // Replace these with the arduino.js hook once the Arduino team's API is settled.
