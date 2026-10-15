@@ -16,4 +16,21 @@ async function readController(port) {
   port.readable.pipeTo(decoder.writable);
   const reader = decoder.readable.getReader();
   let text = "";
+
+
+  while (true) {
+    const chunk = await reader.read();
+    if (chunk.done) break;
+    text += chunk.value;
+
+    const lines = text.split("\n");
+    text = lines.pop(); // keep the unfinished line for next time
+
+    for (const line of lines) {
+      try {
+        stick = JSON.parse(line).right;
+        document.getElementById("joyText").innerText = ${stick.x}, ${stick.y};
+      } catch {}
+    }
+  }
 }
