@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drone</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: black;
+            color: white;
+            font-family: sans-serif;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .panel {
+            background: black;
+            border: 1px solid #333;
+        }
+    </style>
+</head>
+
+<body>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- control panel -->
+    <div class="panel absolute top-6 left-6 p-5 rounded-lg w-72 z-10">
+
+        <label class="block text-sm text-neutral-400 mb-1">Level</label>
+        <select id="shapeSelect" class="w-full bg-black rounded-md p-2 mb-4 border border-neutral-800">
+            <option value="Rectangle">Rectangle</option>
+            <option value="circle">Circle</option>
+            <option value="triangle">Triangle</option>
+        </select>
+
+        <button id="mainBtn" class="w-full bg-white text-black font-medium py-2 rounded-md">
+            Connect USB Controller
+        </button>
+
+        <div id="timer" class="hidden mt-4 text-center text-4xl font-bold">15.0</div>
+
+        <div id="score" class="hidden mt-4 text-center">
+            <div class="text-sm text-neutral-400">Evaluation</div>
+            <div id="scoreText" class="text-3xl font-bold">--%</div>
+            <div id="resultText" class="text-sm mt-1"></div>
+            <div id="feedbackText" class="text-xs text-neutral-400 mt-2"></div>
+        </div>
+    </div>
+
+    <!-- joystick panel -->
+    <div class="panel absolute top-6 right-6 p-4 rounded-lg z-10 font-mono text-sm">
+        Right stick: <span id="joyText">0, 0</span>
+    </div>
+
+    <!-- status  -->
+    <div id="status" class="panel absolute bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full text-sm z-10">
+        Connect your controller to begin
+    </div>
+
+    <!-- game logic -->
+    <script src="./js/arduino.js"></script>
+    <script src="./js/drawing.js"></script>
+    <script src="./js/gameLogic.js"></script>
+    <script src="./js/match_logic.js"></script>
+
+    <script>
+        function loop() {
+            moveDrone();
+            draw();
+            requestAnimationFrame(loop);
+        }
+        loop();
+    </script>
+</body>
+
+</html>
