@@ -10,3 +10,10 @@ async function connectController() {
     alert("error to connect the controller.");
   }
 }
+
+async function readController(port) {
+  const decoder = new TextDecoderStream();
+  port.readable.pipeTo(decoder.writable);
+  const reader = decoder.readable.getReader();
+  let text = "";
+}
