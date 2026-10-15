@@ -1,4 +1,7 @@
 # Smart Drone Controller System (SDCS)
+<div align="center">
+<img src="assets/showcase.gif" width="800" alt="Demo">
+</div>
 
 ## Overview
 
