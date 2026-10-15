@@ -41,3 +41,8 @@ Controls the full game flow, from connecting the controller to showing the final
 - A score of 80% or more shows **SUCCESS**, otherwise **FAILED**, and the user can click **Play Again** to retry.
 
 For more information, [click here](docs/game.md).
+
+## Shape Matching Using AI
+
+Uses the **Google Gemini API** to check how closely a drawn path matches a target shape and returns a match percentage (80% or higher counts as a match).
+For more information,[click here](docs/ai.md).
