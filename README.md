@@ -6,7 +6,7 @@
 ## Overview
 
 **Smart Drone Controller System (SDCS)** is a system that lets a user draw on
-a web page using a drone controller. The controller is connected with Arduino,
+a web page using a drone controller. The controller is connected to an Arduino,
 and the drone's movement is translated into drawing on the UI interface.
 
 
@@ -26,7 +26,7 @@ js/match_logic.js     # Compares the drawing with the chosen shape and returns a
 | :---: | :--- |
 | `Arduino` | We use an Arduino to read input signals from the physical drone controller. |
 | `Gemini API` | We use Google's Gemini API to compare the user's drawing with the requested shape and return a similarity score. |
-| `JavaScript` | We use JavaScript to handle the logic drawing on the web page. |
+| `JavaScript` | We use JavaScript to handle the logic for drawing on the web page. |
 | `HTML` | We use HTML to build the web page. |
 | `CSS` | We use CSS to style the web page and the drawing interface. |
 | `Tailwind` | We use Tailwind CSS to design and style the UI quickly and responsively. |
