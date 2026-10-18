@@ -51,7 +51,7 @@ replayBtn.onclick = () => {
         drone.y = point.y;
         path.push({ x: drone.x, y: drone.y });
 
-        sendCoordinatesToArduino(drone.x, drone.y);
+        //sendCoordinatesToArduino(drone.x, drone.y);
 
         step++;
     }, 16); 
