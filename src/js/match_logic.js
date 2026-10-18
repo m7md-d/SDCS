@@ -1,4 +1,4 @@
-const API_KEY = "Api key";
+const API_KEY = "";
 
 const RULES = {
   rectangle:
@@ -38,7 +38,7 @@ async function matchShape(shape, picture) {
       generationConfig: {
         responseMimeType: "application/json",
         temperature: 0,
-        thinkingConfig: { thinkingLevel: "low" }, // less thinking = faster answer
+        thinkingConfig: { thinkingLevel: "low" }, 
       },
     }),
   });

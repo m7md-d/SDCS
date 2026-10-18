@@ -1,10 +1,8 @@
-// settings
-const PASS_SCORE = 80;
-const GAME_SECONDS = 15;
+const PASS_SCORE = 80; 
+const GAME_SECONDS = 10;
 const SPEED = 10;
-const STICK_MAX = 400;
-const GRID = 100;
-
+const STICK_MAX = 400; 
+const GRID = 100; 
 
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
@@ -17,11 +15,10 @@ const resultText = document.getElementById("resultText");
 const feedbackText = document.getElementById("feedbackText");
 const statusBar = document.getElementById("status");
 
-// game
-let state = "SETUP";
-let stick = { x: 0, y: 0 };
-let drone = { x: 0, y: 0 };
-let path = [];
+let state = "SETUP"; 
+let stick = { x: 0, y: 0 }; 
+let drone = { x: 0, y: 0 }; 
+let path = []; 
 
 function fitCanvas() {
   canvas.width = window.innerWidth;
@@ -77,6 +74,8 @@ async function finishGame() {
   } catch (error) {
     console.log(error);
   }
+
+  if (typeof saveDrawingToHistory === "function") saveDrawingToHistory(JSON.parse(JSON.stringify(path)));
 
   state = "DONE";
   scoreBox.classList.remove("hidden");

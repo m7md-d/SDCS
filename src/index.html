@@ -32,45 +32,57 @@
 
     <canvas id="gameCanvas"></canvas>
 
-    <!-- control panel -->
-    <div class="panel absolute top-6 left-6 p-5 rounded-lg w-72 z-10">
+    <div class="absolute top-6 left-6 w-72 z-10 flex flex-col gap-4">
+        
+        <div class="panel p-5 rounded-lg">
+            <h2 class="text-lg font-bold mb-3 border-b border-neutral-700 pb-1">Mode 1: Play</h2>
+            <label class="block text-sm text-neutral-400 mb-1">Level</label>
+            <select id="shapeSelect" class="w-full bg-black rounded-md p-2 mb-4 border border-neutral-800">
+                <option value="Rectangle">Rectangle</option>
+                <option value="circle">Circle</option>
+                <option value="triangle">Triangle</option>
+            </select>
 
-        <label class="block text-sm text-neutral-400 mb-1">Level</label>
-        <select id="shapeSelect" class="w-full bg-black rounded-md p-2 mb-4 border border-neutral-800">
-            <option value="Rectangle">Rectangle</option>
-            <option value="circle">Circle</option>
-            <option value="triangle">Triangle</option>
-        </select>
+            <button id="mainBtn" class="w-full bg-white text-black font-medium py-2 rounded-md">
+                Connect USB Controller
+            </button>
 
-        <button id="mainBtn" class="w-full bg-white text-black font-medium py-2 rounded-md">
-            Connect USB Controller
-        </button>
+            <div id="timer" class="hidden mt-4 text-center text-4xl font-bold">10</div>
 
-        <div id="timer" class="hidden mt-4 text-center text-4xl font-bold">15.0</div>
+            <div id="score" class="hidden mt-4 text-center">
+                <div class="text-sm text-neutral-400">Evaluation</div>
+                <div id="scoreText" class="text-3xl font-bold">--%</div>
+                <div id="resultText" class="text-sm mt-1"></div>
+                <div id="feedbackText" class="text-xs text-neutral-400 mt-2"></div>
+            </div>
+        </div>
 
-        <div id="score" class="hidden mt-4 text-center">
-            <div class="text-sm text-neutral-400">Evaluation</div>
-            <div id="scoreText" class="text-3xl font-bold">--%</div>
-            <div id="resultText" class="text-sm mt-1"></div>
-            <div id="feedbackText" class="text-xs text-neutral-400 mt-2"></div>
+        <div id="mode2Panel" class="panel p-5 rounded-lg hidden">
+            <h2 class="text-lg font-bold mb-3 border-b border-neutral-700 pb-1">Mode 2: Replay</h2>
+            <label class="block text-sm text-neutral-400 mb-1">History</label>
+            <select id="historySelect" class="w-full bg-black rounded-md p-2 mb-4 border border-neutral-800">
+                <option value="" disabled selected>No drawings yet</option>
+            </select>
+
+            <button id="replayBtn" class="w-full bg-white text-black font-medium py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                Replay Drawing
+            </button>
         </div>
     </div>
 
-    <!-- joystick panel -->
     <div class="panel absolute top-6 right-6 p-4 rounded-lg z-10 font-mono text-sm">
         Right stick: <span id="joyText">0, 0</span>
     </div>
 
-    <!-- status  -->
     <div id="status" class="panel absolute bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full text-sm z-10">
         Connect your controller to begin
     </div>
 
-    <!-- game logic -->
     <script src="./js/arduino.js"></script>
     <script src="./js/drawing.js"></script>
     <script src="./js/gameLogic.js"></script>
     <script src="./js/match_logic.js"></script>
+    <script src="./js/replay_logic.js"></script>
 
     <script>
         function loop() {
